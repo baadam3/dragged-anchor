@@ -1,24 +1,15 @@
 name: Validate Anchor
 
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
+  pull_request_target:
+    types: [opened, synchronized, reopened]
 
 jobs:
-  create-flag:
+  validate:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v2
-
-      - name: Read flag and create flag.txt
-        run: |
-          echo "$(< /home/runner/flag.txt)" > flag.txt
-
-      - name: Commit flag.txt
-        run: |
-          git config --local user.email "you@example.com"
-          git config --local user.name "Your Name"
-          git add flag.txt
-          git commit -m "Add flag.txt with content from /home/runner/flag.txt"
+      - name: Validate Anchor
+        run: ./validate-anchor.sh
