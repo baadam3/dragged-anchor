@@ -1,4 +1,4 @@
-name: Validate Anchor Configuration
+name: Validate Anchor Configuration original
 
 on:
   pull_request_target:
